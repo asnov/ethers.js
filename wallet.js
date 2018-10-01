@@ -1,22 +1,6 @@
 'use strict';
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var bytes_1 = require("./utils/bytes");
 var hash_1 = require("./utils/hash");
 var hdnode_1 = require("./utils/hdnode");
@@ -24,15 +8,15 @@ var json_wallet_1 = require("./utils/json-wallet");
 var keccak256_1 = require("./utils/keccak256");
 var properties_1 = require("./utils/properties");
 var random_bytes_1 = require("./utils/random-bytes");
-var secretStorage = __importStar(require("./utils/secret-storage"));
+var secretStorage = tslib_1.__importStar(require("./utils/secret-storage"));
 var signing_key_1 = require("./utils/signing-key");
 var transaction_1 = require("./utils/transaction");
 // Imported Abstracts
 var abstract_signer_1 = require("./abstract-signer");
 var abstract_provider_1 = require("./providers/abstract-provider");
-var errors = __importStar(require("./errors"));
+var errors = tslib_1.__importStar(require("./errors"));
 var Wallet = /** @class */ (function (_super) {
-    __extends(Wallet, _super);
+    tslib_1.__extends(Wallet, _super);
     function Wallet(privateKey, provider) {
         var _this = _super.call(this) || this;
         errors.checkNew(_this, Wallet);

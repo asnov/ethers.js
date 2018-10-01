@@ -1,25 +1,9 @@
 'use strict';
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 // See: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
 var constants_1 = require("../constants");
-var errors = __importStar(require("../errors"));
+var errors = tslib_1.__importStar(require("../errors"));
 var address_1 = require("./address");
 var bignumber_1 = require("./bignumber");
 var bytes_1 = require("./bytes");
@@ -325,7 +309,7 @@ var Coder = /** @class */ (function () {
 }());
 // Clones the functionality of an existing Coder, but without a localName
 var CoderAnonymous = /** @class */ (function (_super) {
-    __extends(CoderAnonymous, _super);
+    tslib_1.__extends(CoderAnonymous, _super);
     function CoderAnonymous(coder) {
         var _this = _super.call(this, coder.coerceFunc, coder.name, coder.type, undefined, coder.dynamic) || this;
         properties_1.defineReadOnly(_this, 'coder', coder);
@@ -336,7 +320,7 @@ var CoderAnonymous = /** @class */ (function (_super) {
     return CoderAnonymous;
 }(Coder));
 var CoderNull = /** @class */ (function (_super) {
-    __extends(CoderNull, _super);
+    tslib_1.__extends(CoderNull, _super);
     function CoderNull(coerceFunc, localName) {
         return _super.call(this, coerceFunc, 'null', '', localName, false) || this;
     }
@@ -355,7 +339,7 @@ var CoderNull = /** @class */ (function (_super) {
     return CoderNull;
 }(Coder));
 var CoderNumber = /** @class */ (function (_super) {
-    __extends(CoderNumber, _super);
+    tslib_1.__extends(CoderNumber, _super);
     function CoderNumber(coerceFunc, size, signed, localName) {
         var _this = this;
         var name = ((signed ? 'int' : 'uint') + (size * 8));
@@ -420,7 +404,7 @@ var CoderNumber = /** @class */ (function (_super) {
 }(Coder));
 var uint256Coder = new CoderNumber(function (type, value) { return value; }, 32, false, 'none');
 var CoderBoolean = /** @class */ (function (_super) {
-    __extends(CoderBoolean, _super);
+    tslib_1.__extends(CoderBoolean, _super);
     function CoderBoolean(coerceFunc, localName) {
         return _super.call(this, coerceFunc, 'bool', 'bool', localName, false) || this;
     }
@@ -449,7 +433,7 @@ var CoderBoolean = /** @class */ (function (_super) {
     return CoderBoolean;
 }(Coder));
 var CoderFixedBytes = /** @class */ (function (_super) {
-    __extends(CoderFixedBytes, _super);
+    tslib_1.__extends(CoderFixedBytes, _super);
     function CoderFixedBytes(coerceFunc, length, localName) {
         var _this = this;
         var name = ('bytes' + length);
@@ -491,7 +475,7 @@ var CoderFixedBytes = /** @class */ (function (_super) {
     return CoderFixedBytes;
 }(Coder));
 var CoderAddress = /** @class */ (function (_super) {
-    __extends(CoderAddress, _super);
+    tslib_1.__extends(CoderAddress, _super);
     function CoderAddress(coerceFunc, localName) {
         return _super.call(this, coerceFunc, 'address', 'address', localName, false) || this;
     }
@@ -565,7 +549,7 @@ function _decodeDynamicBytes(data, offset, localName) {
     };
 }
 var CoderDynamicBytes = /** @class */ (function (_super) {
-    __extends(CoderDynamicBytes, _super);
+    tslib_1.__extends(CoderDynamicBytes, _super);
     function CoderDynamicBytes(coerceFunc, localName) {
         return _super.call(this, coerceFunc, 'bytes', 'bytes', localName, true) || this;
     }
@@ -590,7 +574,7 @@ var CoderDynamicBytes = /** @class */ (function (_super) {
     return CoderDynamicBytes;
 }(Coder));
 var CoderString = /** @class */ (function (_super) {
-    __extends(CoderString, _super);
+    tslib_1.__extends(CoderString, _super);
     function CoderString(coerceFunc, localName) {
         return _super.call(this, coerceFunc, 'string', 'string', localName, true) || this;
     }
@@ -709,7 +693,7 @@ function unpack(coders, data, offset) {
     };
 }
 var CoderArray = /** @class */ (function (_super) {
-    __extends(CoderArray, _super);
+    tslib_1.__extends(CoderArray, _super);
     function CoderArray(coerceFunc, coder, length, localName) {
         var _this = this;
         var type = (coder.type + '[' + (length >= 0 ? length : '') + ']');
@@ -781,7 +765,7 @@ var CoderArray = /** @class */ (function (_super) {
     return CoderArray;
 }(Coder));
 var CoderTuple = /** @class */ (function (_super) {
-    __extends(CoderTuple, _super);
+    tslib_1.__extends(CoderTuple, _super);
     function CoderTuple(coerceFunc, coders, localName) {
         var _this = this;
         var dynamic = false;

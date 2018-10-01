@@ -1,12 +1,6 @@
 'use strict';
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var contract_1 = require("./contract");
 exports.Contract = contract_1.Contract;
 exports.ContractFactory = contract_1.ContractFactory;
@@ -15,15 +9,15 @@ var abstract_signer_1 = require("./abstract-signer");
 exports.Signer = abstract_signer_1.Signer;
 var wallet_1 = require("./wallet");
 exports.Wallet = wallet_1.Wallet;
-var constants = __importStar(require("./constants"));
+var constants = tslib_1.__importStar(require("./constants"));
 exports.constants = constants;
-var errors = __importStar(require("./errors"));
+var errors = tslib_1.__importStar(require("./errors"));
 exports.errors = errors;
-var providers = __importStar(require("./providers"));
+var providers = tslib_1.__importStar(require("./providers"));
 exports.providers = providers;
-var utils = __importStar(require("./utils"));
+var utils = tslib_1.__importStar(require("./utils"));
 exports.utils = utils;
-var wordlists = __importStar(require("./wordlists"));
+var wordlists = tslib_1.__importStar(require("./wordlists"));
 exports.wordlists = wordlists;
 ////////////////////////
 // Compile-Time Constants
