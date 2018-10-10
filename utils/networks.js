@@ -1,13 +1,7 @@
 'use strict';
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var errors = __importStar(require("../errors"));
+var tslib_1 = require("tslib");
+var errors = tslib_1.__importStar(require("../errors"));
 var homestead = {
     chainId: 1,
     ensAddress: "0x314159265dd8dbb310642f98f50c066173c1259b",

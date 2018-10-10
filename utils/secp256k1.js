@@ -1,19 +1,13 @@
 'use strict';
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var elliptic_1 = require("elliptic");
 var address_1 = require("./address");
 var bytes_1 = require("./bytes");
 var hash_1 = require("./hash");
 var keccak256_1 = require("./keccak256");
 var properties_1 = require("./properties");
-var errors = __importStar(require("../errors"));
+var errors = tslib_1.__importStar(require("../errors"));
 ///////////////////////////////
 var _curve = null;
 function getCurve() {

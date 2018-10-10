@@ -1,24 +1,8 @@
 'use strict';
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var constants_1 = require("./constants");
-var errors = __importStar(require("./errors"));
+var errors = tslib_1.__importStar(require("./errors"));
 var abi_coder_1 = require("./utils/abi-coder");
 var address_1 = require("./utils/address");
 var bignumber_1 = require("./utils/bignumber");
@@ -31,7 +15,7 @@ var abstract_provider_1 = require("./providers/abstract-provider");
 var abstract_signer_1 = require("./abstract-signer");
 ///////////////////////////////
 var VoidSigner = /** @class */ (function (_super) {
-    __extends(VoidSigner, _super);
+    tslib_1.__extends(VoidSigner, _super);
     function VoidSigner(address, provider) {
         var _this = _super.call(this) || this;
         properties_1.defineReadOnly(_this, 'address', address);

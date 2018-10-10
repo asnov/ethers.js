@@ -5,7 +5,7 @@
     "module": "commonjs",
     "target": "es5",
     "moduleResolution": "node",
-
+    "importHelpers": true,
     "outDir": "./",
 
     "declaration": true,

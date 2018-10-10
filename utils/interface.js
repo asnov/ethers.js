@@ -1,22 +1,6 @@
 'use strict';
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 // See: https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
 var address_1 = require("./address");
 var abi_coder_1 = require("./abi-coder");
@@ -25,7 +9,7 @@ var bytes_1 = require("./bytes");
 var hash_1 = require("./hash");
 var keccak256_1 = require("./keccak256");
 var properties_1 = require("./properties");
-var errors = __importStar(require("../errors"));
+var errors = tslib_1.__importStar(require("../errors"));
 ///////////////////////////////
 var _Indexed = /** @class */ (function () {
     function _Indexed(hash) {
@@ -45,7 +29,7 @@ var Description = /** @class */ (function () {
     return Description;
 }());
 var _DeployDescription = /** @class */ (function (_super) {
-    __extends(_DeployDescription, _super);
+    tslib_1.__extends(_DeployDescription, _super);
     function _DeployDescription() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
@@ -72,7 +56,7 @@ var _DeployDescription = /** @class */ (function (_super) {
     return _DeployDescription;
 }(Description));
 var _FunctionDescription = /** @class */ (function (_super) {
-    __extends(_FunctionDescription, _super);
+    tslib_1.__extends(_FunctionDescription, _super);
     function _FunctionDescription() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
@@ -107,14 +91,14 @@ var _FunctionDescription = /** @class */ (function (_super) {
     return _FunctionDescription;
 }(Description));
 var Result = /** @class */ (function (_super) {
-    __extends(Result, _super);
+    tslib_1.__extends(Result, _super);
     function Result() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     return Result;
 }(Description));
 var _EventDescription = /** @class */ (function (_super) {
-    __extends(_EventDescription, _super);
+    tslib_1.__extends(_EventDescription, _super);
     function _EventDescription() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
@@ -213,14 +197,14 @@ var _EventDescription = /** @class */ (function (_super) {
     return _EventDescription;
 }(Description));
 var _TransactionDescription = /** @class */ (function (_super) {
-    __extends(_TransactionDescription, _super);
+    tslib_1.__extends(_TransactionDescription, _super);
     function _TransactionDescription() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     return _TransactionDescription;
 }(Description));
 var _LogDescription = /** @class */ (function (_super) {
-    __extends(_LogDescription, _super);
+    tslib_1.__extends(_LogDescription, _super);
     function _LogDescription() {
         return _super !== null && _super.apply(this, arguments) || this;
     }

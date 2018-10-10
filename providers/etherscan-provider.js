@@ -1,27 +1,11 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var base_provider_1 = require("./base-provider");
 var bytes_1 = require("../utils/bytes");
 var properties_1 = require("../utils/properties");
 var web_1 = require("../utils/web");
-var errors = __importStar(require("../errors"));
+var errors = tslib_1.__importStar(require("../errors"));
 ///////////////////////////////
 // The transaction has already been sanitized by the calls in Provider
 function getTransactionString(transaction) {
@@ -82,7 +66,7 @@ function checkLogTag(blockTag) {
     return parseInt(blockTag.substring(2), 16);
 }
 var EtherscanProvider = /** @class */ (function (_super) {
-    __extends(EtherscanProvider, _super);
+    tslib_1.__extends(EtherscanProvider, _super);
     function EtherscanProvider(network, apiKey) {
         var _this = _super.call(this, network) || this;
         errors.checkNew(_this, EtherscanProvider);
