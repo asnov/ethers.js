@@ -12,14 +12,20 @@ export declare type EventFilter = {
     topics?: Array<string>;
 };
 export interface Event extends Log {
-    args: Array<any>;
-    decode: (data: string, topics?: Array<string>) => any;
-    event: string;
-    eventSignature: string;
+    args?: Array<any>;
+    decode?: (data: string, topics?: Array<string>) => any;
+    event?: string;
+    eventSignature?: string;
     removeListener: () => void;
     getBlock: () => Promise<Block>;
     getTransaction: () => Promise<TransactionResponse>;
     getTransactionReceipt: () => Promise<TransactionReceipt>;
+}
+export interface ContractReceipt extends TransactionReceipt {
+    events?: Array<Event>;
+}
+export interface ContractTransaction extends TransactionResponse {
+    wait(confirmations?: number): Promise<ContractReceipt>;
 }
 export declare class VoidSigner extends Signer {
     readonly address: string;

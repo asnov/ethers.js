@@ -43,7 +43,7 @@ var VoidSigner = /** @class */ (function (_super) {
 }(abstract_signer_1.Signer));
 exports.VoidSigner = VoidSigner;
 var allowedTransactionKeys = {
-    data: true, from: true, gasLimit: true, gasPrice: true, nonce: true, to: true, value: true
+    chainId: true, data: true, from: true, gasLimit: true, gasPrice: true, nonce: true, to: true, value: true
 };
 // Recursively replaces ENS names with promises to resolve the name and
 // stalls until all promises have returned
@@ -90,6 +90,7 @@ function resolveAddresses(provider, value, paramType) {
 function runMethod(contract, functionName, estimateOnly) {
     var method = contract.interface.functions[functionName];
     return function () {
+        var _this = this;
         var params = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             params[_i] = arguments[_i];
@@ -190,7 +191,36 @@ function runMethod(contract, functionName, estimateOnly) {
                 if (tx.from != null) {
                     errors.throwError('cannot override from in a transaction', errors.UNSUPPORTED_OPERATION, { operation: 'sendTransaction' });
                 }
-                return contract.signer.sendTransaction(tx);
+                return contract.signer.sendTransaction(tx).then(function (tx) {
+                    var wait = tx.wait.bind(tx);
+                    tx.wait = function (confirmations) {
+                        return wait(confirmations).then(function (receipt) {
+                            receipt.events = receipt.logs.map(function (log) {
+                                var event = properties_1.deepCopy(log);
+                                var parsed = _this.interface.parseLog(log);
+                                if (parsed) {
+                                    event.args = parsed.values;
+                                    event.decode = parsed.decode;
+                                    event.event = parsed.name;
+                                    event.eventSignature = parsed.signature;
+                                }
+                                event.removeListener = function () { return _this.provider; };
+                                event.getBlock = function () {
+                                    return _this.provider.getBlock(receipt.blockHash);
+                                };
+                                event.getTransaction = function () {
+                                    return _this.provider.getTransaction(receipt.transactionHash);
+                                };
+                                event.getTransactionReceipt = function () {
+                                    return Promise.resolve(receipt);
+                                };
+                                return event;
+                            });
+                            return receipt;
+                        });
+                    };
+                    return tx;
+                });
             }
             throw new Error('invalid type - ' + method.type);
             return null;
@@ -198,7 +228,10 @@ function runMethod(contract, functionName, estimateOnly) {
     };
 }
 function getEventTag(filter) {
-    return (filter.address || '') + (filter.topics ? filter.topics.join(':') : '');
+    if (filter.address && (filter.topics == null || filter.topics.length === 0)) {
+        return '*';
+    }
+    return (filter.address || '*') + '@' + (filter.topics ? filter.topics.join(':') : '');
 }
 var Contract = /** @class */ (function () {
     // https://github.com/Microsoft/TypeScript/issues/5453
@@ -350,8 +383,15 @@ var Contract = /** @class */ (function () {
             // Listen for any event
             if (eventName === '*') {
                 return {
-                    decode: function (log) {
-                        return [_this.interface.parseLog(log)];
+                    prepareEvent: function (e) {
+                        var parsed = _this.interface.parseLog(e);
+                        if (parsed) {
+                            e.args = parsed.values;
+                            e.decode = parsed.decode;
+                            e.event = parsed.name;
+                            e.eventSignature = parsed.signature;
+                        }
+                        return [e];
                     },
                     eventTag: '*',
                     filter: { address: this.address },
@@ -370,8 +410,12 @@ var Contract = /** @class */ (function () {
                 topics: [event_1.topic]
             };
             return {
-                decode: function (log) {
-                    return event_1.decode(log.data, log.topics);
+                prepareEvent: function (e) {
+                    var args = event_1.decode(e.data, e.topics);
+                    e.args = args;
+                    var result = Array.prototype.slice.call(args);
+                    result.push(e);
+                    return result;
                 },
                 event: event_1,
                 eventTag: getEventTag(filter_1),
@@ -386,11 +430,11 @@ var Contract = /** @class */ (function () {
         var event = null;
         if (eventName.topics && eventName.topics[0]) {
             filter.topics = eventName.topics;
-            for (var name in this.interface.events) {
-                if (name.indexOf('(') === -1) {
+            for (var name_1 in this.interface.events) {
+                if (name_1.indexOf('(') === -1) {
                     continue;
                 }
-                var e = this.interface.events[name];
+                var e = this.interface.events[name_1];
                 if (e.topic === eventName.topics[0].toLowerCase()) {
                     event = e;
                     break;
@@ -398,11 +442,15 @@ var Contract = /** @class */ (function () {
             }
         }
         return {
-            decode: function (log) {
-                if (event) {
-                    return event.decode(log.data, log.topics);
+            prepareEvent: function (e) {
+                if (!event) {
+                    return [e];
                 }
-                return [log];
+                var args = event.decode(e.data, e.topics);
+                e.args = args;
+                var result = Array.prototype.slice.call(args);
+                result.push(e);
+                return result;
             },
             event: event,
             eventTag: getEventTag(filter),
@@ -415,18 +463,18 @@ var Contract = /** @class */ (function () {
             errors.throwError('events require a provider or a signer with a provider', errors.UNSUPPORTED_OPERATION, { operation: 'once' });
         }
         var wrappedListener = function (log) {
-            var decoded = Array.prototype.slice.call(eventFilter.decode(log));
             var event = properties_1.deepCopy(log);
-            event.args = decoded;
-            event.decode = eventFilter.event.decode;
-            event.event = eventFilter.event.name;
-            event.eventSignature = eventFilter.event.signature;
+            var args = eventFilter.prepareEvent(event);
+            if (eventFilter.event) {
+                event.decode = eventFilter.event.decode;
+                event.event = eventFilter.event.name;
+                event.eventSignature = eventFilter.event.signature;
+            }
             event.removeListener = function () { _this.removeListener(eventFilter.filter, listener); };
             event.getBlock = function () { return _this.provider.getBlock(log.blockHash); };
-            event.getTransaction = function () { return _this.provider.getTransactionReceipt(log.transactionHash); };
+            event.getTransaction = function () { return _this.provider.getTransaction(log.transactionHash); };
             event.getTransactionReceipt = function () { return _this.provider.getTransactionReceipt(log.transactionHash); };
-            decoded.push(event);
-            _this.emit.apply(_this, [eventFilter.filter].concat(decoded));
+            _this.emit.apply(_this, [eventFilter.filter].concat(args));
         };
         this.provider.on(eventFilter.filter, wrappedListener);
         this._events.push({ eventFilter: eventFilter, listener: listener, wrappedListener: wrappedListener, once: once });
@@ -454,13 +502,16 @@ var Contract = /** @class */ (function () {
         var result = false;
         var eventFilter = this._getEventFilter(eventName);
         this._events = this._events.filter(function (event) {
+            // Not this event (keep it for later)
             if (event.eventFilter.eventTag !== eventFilter.eventTag) {
                 return true;
             }
+            // Call the callback in the next event loop
             setTimeout(function () {
                 event.listener.apply(_this, args);
             }, 0);
             result = true;
+            // Reschedule it if it not "once"
             return !(event.once);
         });
         return result;

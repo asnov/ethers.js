@@ -134,6 +134,7 @@ var formatTransaction = {
     blockHash: allowNull(checkHash, null),
     blockNumber: allowNull(checkNumber, null),
     transactionIndex: allowNull(checkNumber, null),
+    confirmations: allowNull(checkNumber, null),
     from: address_1.getAddress,
     gasPrice: bignumber_1.bigNumberify,
     gasLimit: bignumber_1.bigNumberify,
@@ -262,6 +263,7 @@ var formatTransactionReceipt = {
     transactionHash: checkHash,
     logs: arrayOf(checkTransactionReceiptLog),
     blockNumber: checkNumber,
+    confirmations: allowNull(checkNumber, null),
     cumulativeGasUsed: bignumber_1.bigNumberify,
     status: allowNull(checkNumber)
 };
@@ -328,6 +330,9 @@ function serializeTopics(topics) {
             });
             return topic.join(',');
         }
+        else if (topic === null) {
+            return '';
+        }
         return errors.throwError('invalid topic value', errors.INVALID_ARGUMENT, { argument: 'topic', value: topic });
     }).join('&');
 }
@@ -340,7 +345,12 @@ function deserializeTopics(data) {
             }
             return topic;
         }
-        return comps;
+        return comps.map(function (topic) {
+            if (topic === '') {
+                return null;
+            }
+            return topic;
+        });
     });
 }
 function getEventTag(eventName) {
@@ -363,6 +373,11 @@ function getEventTag(eventName) {
         return 'filter:' + (eventName.address || '') + ':' + serializeTopics(eventName.topics || []);
     }
     throw new Error('invalid event - ' + eventName);
+}
+//////////////////////////////
+// Helper Object
+function getTime() {
+    return (new Date()).getTime();
 }
 var BaseProvider = /** @class */ (function (_super) {
     tslib_1.__extends(BaseProvider, _super);
@@ -396,11 +411,13 @@ var BaseProvider = /** @class */ (function (_super) {
         // until we get a response. This provides devs with a consistent view. Similarly for
         // transaction hashes.
         _this._emitted = { block: _this._lastBlockNumber };
+        _this._fastQueryDate = 0;
         return _this;
     }
     BaseProvider.prototype._doPoll = function () {
         var _this = this;
         this.getBlockNumber().then(function (blockNumber) {
+            _this._setFastBlockNumber(blockNumber);
             // If the block hasn't changed, meh.
             if (blockNumber === _this._lastBlockNumber) {
                 return;
@@ -550,13 +567,44 @@ var BaseProvider = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
+    BaseProvider.prototype._getFastBlockNumber = function () {
+        var _this = this;
+        var now = getTime();
+        // Stale block number, request a newer value
+        if ((now - this._fastQueryDate) > 2 * this._pollingInterval) {
+            this._fastQueryDate = now;
+            this._fastBlockNumberPromise = this.getBlockNumber().then(function (blockNumber) {
+                if (_this._fastBlockNumber == null || blockNumber > _this._fastBlockNumber) {
+                    _this._fastBlockNumber = blockNumber;
+                }
+                return _this._fastBlockNumber;
+            });
+        }
+        return this._fastBlockNumberPromise;
+    };
+    BaseProvider.prototype._setFastBlockNumber = function (blockNumber) {
+        // Older block, maybe a stale request
+        if (this._fastBlockNumber != null && blockNumber < this._fastBlockNumber) {
+            return;
+        }
+        // Update the time we updated the blocknumber
+        this._fastQueryDate = getTime();
+        // Newer block number, use  it
+        if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
+            this._fastBlockNumber = blockNumber;
+            this._fastBlockNumberPromise = Promise.resolve(blockNumber);
+        }
+    };
     // @TODO: Add .poller which must be an event emitter with a 'start', 'stop' and 'block' event;
     //        this will be used once we move to the WebSocket or other alternatives to polling
-    BaseProvider.prototype.waitForTransaction = function (transactionHash, timeout) {
+    BaseProvider.prototype.waitForTransaction = function (transactionHash, confirmations) {
         var _this = this;
+        if (!confirmations) {
+            confirmations = 1;
+        }
         return web_1.poll(function () {
             return _this.getTransactionReceipt(transactionHash).then(function (receipt) {
-                if (receipt == null) {
+                if (receipt == null || receipt.confirmations < confirmations) {
                     return undefined;
                 }
                 return receipt;
@@ -571,6 +619,7 @@ var BaseProvider = /** @class */ (function (_super) {
                 if (value != result) {
                     throw new Error('invalid response - getBlockNumber');
                 }
+                _this._setFastBlockNumber(value);
                 return value;
             });
         });
@@ -664,7 +713,7 @@ var BaseProvider = /** @class */ (function (_super) {
     // This should be called by any subclass wrapping a TransactionResponse
     BaseProvider.prototype._wrapTransaction = function (tx, hash) {
         var _this = this;
-        if (bytes_1.hexDataLength(hash) !== 32) {
+        if (hash != null && bytes_1.hexDataLength(hash) !== 32) {
             throw new Error('invalid response - sendTransaction');
         }
         var result = tx;
@@ -674,11 +723,11 @@ var BaseProvider = /** @class */ (function (_super) {
         }
         this._emitted['t:' + tx.hash] = 'pending';
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = function () {
-            return _this.waitForTransaction(hash).then(function (receipt) {
+        result.wait = function (confirmations) {
+            return _this.waitForTransaction(tx.hash, confirmations).then(function (receipt) {
                 if (receipt.status === 0) {
                     errors.throwError('transaction failed', errors.CALL_EXCEPTION, {
-                        transactionHash: hash,
+                        transactionHash: tx.hash,
                         transaction: tx
                     });
                 }
@@ -780,7 +829,22 @@ var BaseProvider = /** @class */ (function (_super) {
                             }
                             return undefined;
                         }
-                        return BaseProvider.checkTransactionResponse(result);
+                        var tx = BaseProvider.checkTransactionResponse(result);
+                        if (tx.blockNumber == null) {
+                            tx.confirmations = 0;
+                        }
+                        else if (tx.confirmations == null) {
+                            return _this._getFastBlockNumber().then(function (blockNumber) {
+                                // Add the confirmations using the fast block number (pessimistic)
+                                var confirmations = (blockNumber - tx.blockNumber) + 1;
+                                if (confirmations <= 0) {
+                                    confirmations = 1;
+                                }
+                                tx.confirmations = confirmations;
+                                return _this._wrapTransaction(tx);
+                            });
+                        }
+                        return _this._wrapTransaction(tx);
                     });
                 }, { onceBlock: _this });
             });
@@ -800,7 +864,26 @@ var BaseProvider = /** @class */ (function (_super) {
                             }
                             return undefined;
                         }
-                        return checkTransactionReceipt(result);
+                        // "geth-etc" returns receipts before they are ready
+                        if (result.blockHash == null) {
+                            return undefined;
+                        }
+                        var receipt = checkTransactionReceipt(result);
+                        if (receipt.blockNumber == null) {
+                            receipt.confirmations = 0;
+                        }
+                        else if (receipt.confirmations == null) {
+                            return _this._getFastBlockNumber().then(function (blockNumber) {
+                                // Add the confirmations using the fast block number (pessimistic)
+                                var confirmations = (blockNumber - receipt.blockNumber) + 1;
+                                if (confirmations <= 0) {
+                                    confirmations = 1;
+                                }
+                                receipt.confirmations = confirmations;
+                                return receipt;
+                            });
+                        }
+                        return receipt;
                     });
                 }, { onceBlock: _this });
             });

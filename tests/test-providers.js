@@ -302,6 +302,11 @@ function testProvider(providerName, networkName) {
         function testTransactionReceipt(expected) {
             var title = ('Receipt ' + expected.transactionHash.substring(0, 10) + ' - ');
             return provider.getTransactionReceipt(expected.transactionHash).then(function(receipt) {
+
+                // This changes with every block
+                assert.equal(typeof(receipt.confirmations), 'number', 'confirmations is a number');
+                delete receipt.confirmations;
+
                 for (var key in receipt) {
                     equals((title + key), receipt[key], expected[key]);
                 }
@@ -326,6 +331,14 @@ function testProvider(providerName, networkName) {
         function testTransaction(expected) {
             var title = ('Transaction ' + expected.hash.substring(0, 10) + ' - ');
             return provider.getTransaction(expected.hash).then(function(tx) {
+
+                // This changes with every block
+                assert.equal(typeof(tx.confirmations), 'number', 'confirmations is a number');
+                delete tx.confirmations;
+
+                assert.equal(typeof(tx.wait), 'function', 'wait is a function');
+                delete tx.wait
+
                 for (var key in tx) {
                     equals((title + key), tx[key], expected[key]);
                 }

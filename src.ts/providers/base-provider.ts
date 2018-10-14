@@ -156,6 +156,8 @@ const formatTransaction = {
    blockNumber: allowNull(checkNumber, null),
    transactionIndex: allowNull(checkNumber, null),
 
+   confirmations: allowNull(checkNumber, null),
+
    from: getAddress,
 
    gasPrice: bigNumberify,
@@ -236,7 +238,7 @@ function checkTransactionResponse(transaction: any): TransactionResponse {
     if (typeof(networkId) !== 'number') { networkId = 0; }
 
     result.networkId = networkId;
-    
+
     // 0x0000... should actually be null
     if (result.blockHash && result.blockHash.replace(/0/g, '') === 'x') {
         result.blockHash = null;
@@ -313,6 +315,7 @@ const formatTransactionReceipt = {
     transactionHash: checkHash,
     logs: arrayOf(checkTransactionReceiptLog),
     blockNumber: checkNumber,
+    confirmations: allowNull(checkNumber, null),
     cumulativeGasUsed: bigNumberify,
     status: allowNull(checkNumber)
 };
@@ -377,6 +380,7 @@ function checkLog(log: any): any {
     return check(formatLog, log);
 }
 
+
 //////////////////////////////
 // Event Serializeing
 
@@ -391,6 +395,8 @@ function serializeTopics(topics: Array<string | Array<string>>): string {
                 }
             });
             return topic.join(',');
+        } else if (topic === null) {
+            return '';
         }
         return errors.throwError('invalid topic value', errors.INVALID_ARGUMENT, { argument: 'topic', value: topic });
     }).join('&');
@@ -403,7 +409,11 @@ function deserializeTopics(data: string): Array<string | Array<string>> {
             if (comps[0] === '') { return null; }
             return topic;
         }
-        return comps;
+
+        return comps.map((topic) => {
+            if (topic === '') { return null; }
+            return topic;
+        });
     });
 }
 
@@ -430,6 +440,13 @@ function getEventTag(eventName: EventType): string {
     }
 
     throw new Error('invalid event - ' + eventName);
+}
+
+//////////////////////////////
+// Helper Object
+
+function getTime() {
+    return (new Date()).getTime();
 }
 
 //////////////////////////////
@@ -466,6 +483,10 @@ export class BaseProvider extends Provider {
 
     // string => BigNumber
     private _balances: any;
+
+    private _fastBlockNumber: number;
+    private _fastBlockNumberPromise: Promise<number>;
+    private _fastQueryDate: number;
 
 
     /**
@@ -515,10 +536,13 @@ export class BaseProvider extends Provider {
         // until we get a response. This provides devs with a consistent view. Similarly for
         // transaction hashes.
         this._emitted = { block: this._lastBlockNumber };
+
+        this._fastQueryDate = 0;
     }
 
     private _doPoll(): void {
         this.getBlockNumber().then((blockNumber) => {
+            this._setFastBlockNumber(blockNumber);
 
             // If the block hasn't changed, meh.
             if (blockNumber === this._lastBlockNumber) { return; }
@@ -659,13 +683,45 @@ export class BaseProvider extends Provider {
         }
     }
 
+    _getFastBlockNumber(): Promise<number> {
+        let now = getTime();
+
+        // Stale block number, request a newer value
+        if ((now - this._fastQueryDate) > 2 * this._pollingInterval) {
+            this._fastQueryDate = now;
+            this._fastBlockNumberPromise = this.getBlockNumber().then((blockNumber) => {
+                if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
+                    this._fastBlockNumber = blockNumber;
+                }
+                return this._fastBlockNumber;
+            });
+        }
+
+        return this._fastBlockNumberPromise;
+    }
+
+    _setFastBlockNumber(blockNumber: number): void {
+        // Older block, maybe a stale request
+        if (this._fastBlockNumber != null && blockNumber < this._fastBlockNumber) { return; }
+
+        // Update the time we updated the blocknumber
+        this._fastQueryDate = getTime();
+
+        // Newer block number, use  it
+        if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
+            this._fastBlockNumber = blockNumber;
+            this._fastBlockNumberPromise = Promise.resolve(blockNumber);
+        }
+    }
+
     // @TODO: Add .poller which must be an event emitter with a 'start', 'stop' and 'block' event;
     //        this will be used once we move to the WebSocket or other alternatives to polling
 
-    waitForTransaction(transactionHash: string, timeout?: number): Promise<TransactionReceipt> {
+    waitForTransaction(transactionHash: string, confirmations?: number): Promise<TransactionReceipt> {
+        if (!confirmations) { confirmations = 1; }
         return poll(() => {
             return this.getTransactionReceipt(transactionHash).then((receipt) => {
-                if (receipt == null) { return undefined; }
+                if (receipt == null || receipt.confirmations < confirmations) { return undefined; }
                 return receipt;
             });
         }, { onceBlock: this });
@@ -674,8 +730,9 @@ export class BaseProvider extends Provider {
     getBlockNumber(): Promise<number> {
         return this.ready.then(() => {
             return this.perform('getBlockNumber', { }).then((result) => {
-                var value = parseInt(result);
+                let value = parseInt(result);
                 if (value != result) { throw new Error('invalid response - getBlockNumber'); }
+                this._setFastBlockNumber(value);
                 return value;
             });
         });
@@ -765,7 +822,7 @@ export class BaseProvider extends Provider {
 
     // This should be called by any subclass wrapping a TransactionResponse
     _wrapTransaction(tx: Transaction, hash?: string): TransactionResponse {
-        if (hexDataLength(hash) !== 32) { throw new Error('invalid response - sendTransaction'); }
+        if (hash != null && hexDataLength(hash) !== 32) { throw new Error('invalid response - sendTransaction'); }
 
         let result: TransactionResponse = <TransactionResponse>tx;
 
@@ -775,12 +832,13 @@ export class BaseProvider extends Provider {
         }
 
         this._emitted['t:' + tx.hash] = 'pending';
+
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = () => {
-            return this.waitForTransaction(hash).then((receipt) => {
+        result.wait = (confirmations?: number) => {
+            return this.waitForTransaction(tx.hash, confirmations).then((receipt) => {
                 if (receipt.status === 0) {
                     errors.throwError('transaction failed', errors.CALL_EXCEPTION, {
-                        transactionHash: hash,
+                        transactionHash: tx.hash,
                         transaction: tx
                     });
                 }
@@ -877,7 +935,7 @@ export class BaseProvider extends Provider {
     getTransaction(transactionHash: string): Promise<TransactionResponse> {
         return this.ready.then(() => {
             return resolveProperties({ transactionHash: transactionHash }).then(({ transactionHash }) => {
-                var params = { transactionHash: checkHash(transactionHash) };
+                let params = { transactionHash: checkHash(transactionHash) };
                 return poll(() => {
                     return this.perform('getTransaction', params).then((result) => {
                         if (result == null) {
@@ -886,7 +944,25 @@ export class BaseProvider extends Provider {
                             }
                             return undefined;
                         }
-                        return BaseProvider.checkTransactionResponse(result);
+
+                        let tx = BaseProvider.checkTransactionResponse(result);
+
+                        if (tx.blockNumber == null) {
+                            tx.confirmations = 0;
+
+                        } else if (tx.confirmations == null) {
+                            return this._getFastBlockNumber().then((blockNumber) => {
+
+                                // Add the confirmations using the fast block number (pessimistic)
+                                let confirmations = (blockNumber - tx.blockNumber) + 1;
+                                if (confirmations <= 0) { confirmations = 1; }
+                                tx.confirmations = confirmations;
+
+                                return this._wrapTransaction(tx);
+                            });
+                        }
+
+                        return this._wrapTransaction(tx);
                     });
                 }, { onceBlock: this });
             });
@@ -896,7 +972,7 @@ export class BaseProvider extends Provider {
     getTransactionReceipt(transactionHash: string): Promise<TransactionReceipt> {
         return this.ready.then(() => {
             return resolveProperties({ transactionHash: transactionHash }).then(({ transactionHash }) => {
-                var params = { transactionHash: checkHash(transactionHash) };
+                let params = { transactionHash: checkHash(transactionHash) };
                 return poll(() => {
                     return this.perform('getTransactionReceipt', params).then((result) => {
                         if (result == null) {
@@ -905,7 +981,28 @@ export class BaseProvider extends Provider {
                             }
                             return undefined;
                         }
-                        return checkTransactionReceipt(result);
+
+                        // "geth-etc" returns receipts before they are ready
+                        if (result.blockHash == null) { return undefined; }
+
+                        let receipt = checkTransactionReceipt(result);
+
+                        if (receipt.blockNumber == null) {
+                            receipt.confirmations = 0;
+
+                        } else if (receipt.confirmations == null) {
+                            return this._getFastBlockNumber().then((blockNumber) => {
+
+                                // Add the confirmations using the fast block number (pessimistic)
+                                let confirmations = (blockNumber - receipt.blockNumber) + 1;
+                                if (confirmations <= 0) { confirmations = 1; }
+                                receipt.confirmations = confirmations;
+
+                                return receipt;
+                            });
+                        }
+
+                        return receipt;
                     });
                 }, { onceBlock: this });
             });

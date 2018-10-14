@@ -69,6 +69,7 @@ export interface TransactionReceipt {
     transactionHash?: string,
     logs?: Array<Log>,
     blockNumber?: number,
+    confirmations?: number,
     cumulativeGasUsed?: BigNumber,
     byzantium: boolean,
     status?: number
@@ -93,6 +94,8 @@ export interface TransactionResponse extends Transaction {
     blockHash?: string,
     timestamp?: number,
 
+    confirmations: number,
+
     // Not optional (as it is in Transaction)
     from: string;
 
@@ -100,7 +103,7 @@ export interface TransactionResponse extends Transaction {
     raw?: string,
 
     // This function waits until the transaction has been mined
-    wait: (timeout?: number) => Promise<TransactionReceipt>
+    wait: (confirmations?: number) => Promise<TransactionReceipt>
 };
 
 export type EventType = string | Array<string> | Filter;
